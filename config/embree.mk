@@ -1,3 +1,14 @@
+ifeq ($(EMBREE_FROM_SOURCE),no)
+
+build_embree:
+	$(info Using external Embree from $(EMBREE_DIR))
+
+cleanall_embree:
+
+clobber_embree:
+
+else
+
 $(EMBREE_BUILDDIR)/Makefile: $(EMBREE_DIR)/CMakeLists.txt
 	mkdir -p $(EMBREE_BUILDDIR)
 	cd $(EMBREE_BUILDDIR) && \
@@ -30,3 +41,5 @@ cleanall: cleanall_embree
 clobberall: clobber_embree
 
 .PHONY: build_embree cleanall_embree clobber_embree
+
+endif

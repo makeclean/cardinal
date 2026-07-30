@@ -1,3 +1,14 @@
+ifeq ($(MOAB_FROM_SOURCE),no)
+
+build_moab:
+	$(info Using external MOAB from $(MOAB_DIR))
+
+cleanall_moab:
+
+clobber_moab:
+
+else
+
 $(MOAB_BUILDDIR)/Makefile: $(MOAB_DIR)/CMakeLists.txt
 	mkdir -p $(MOAB_BUILDDIR)
 	cd $(MOAB_BUILDDIR) && \
@@ -33,3 +44,5 @@ cleanall: cleanall_moab
 clobberall: clobber_moab
 
 .PHONY: build_moab cleanall_moab clobber_moab
+
+endif

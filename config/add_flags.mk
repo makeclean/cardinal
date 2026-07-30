@@ -13,6 +13,22 @@ ifeq ($(ENABLE_DAGMC), yes)
 
   # this flag is used in OpenMC
   libmesh_CXXFLAGS    += -DOPENMC_DAGMC_ENABLED
+
+  ifeq ($(DAGMC_FROM_SOURCE),no)
+    ADDITIONAL_CPPFLAGS += -I$(DAGMC_DIR)/include
+  endif
+
+  ifeq ($(MOAB_FROM_SOURCE),no)
+    ADDITIONAL_CPPFLAGS += -I$(MOAB_DIR)/include
+  endif
+
+  ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
+    ADDITIONAL_CPPFLAGS += -I$(DOUBLEDOWN_DIR)/include
+  endif
+
+  ifeq ($(EMBREE_FROM_SOURCE),no)
+    ADDITIONAL_CPPFLAGS += -I$(EMBREE_DIR)/include
+  endif
 endif
 
 libmesh_CXXFLAGS += -DOPENMC_LIBMESH_ENABLED

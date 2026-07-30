@@ -1,3 +1,14 @@
+ifeq ($(DAGMC_FROM_SOURCE),no)
+
+build_dagmc:
+	$(info Using external DAGMC from $(DAGMC_DIR))
+
+cleanall_dagmc:
+
+clobber_dagmc:
+
+else
+
 $(DAGMC_BUILDDIR)/Makefile: build_doubledown | $(DAGMC_DIR)/CMakeLists.txt
 	mkdir -p $(DAGMC_BUILDDIR)
 	cd $(DAGMC_BUILDDIR) && \
@@ -37,3 +48,5 @@ cleanall: cleanall_dagmc
 clobberall: clobber_dagmc
 
 .PHONY: build_dagmc cleanall_dagmc clobber_dagmc
+
+endif

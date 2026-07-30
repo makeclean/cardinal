@@ -1,3 +1,14 @@
+ifeq ($(OPENMC_FROM_SOURCE),no)
+
+build_openmc:
+	$(info Using external OpenMC from $(OPENMC_DIR))
+
+cleanall_openmc:
+
+clobber_openmc:
+
+else
+
 $(OPENMC_BUILDDIR)/Makefile: build_dagmc | $(OPENMC_DIR)/CMakeLists.txt
 	mkdir -p $(OPENMC_BUILDDIR)
 	cd $(OPENMC_BUILDDIR) && \
@@ -33,3 +44,5 @@ cleanall: cleanall_openmc
 clobberall: clobber_openmc
 
 .PHONY: build_openmc cleanall_openmc clobber_openmc
+
+endif

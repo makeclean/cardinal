@@ -6,7 +6,7 @@ endef
 # Set default values for all third party dependencies
 NEKRS_DIR           ?= $(CONTRIB_DIR)/nekRS
 OPENMC_DIR          ?= $(CONTRIB_DIR)/openmc
-NUCLEARDATA_DIR     ?= $(CONTRIB_DIR)/nuclear_data
+NUCLEAR_DATA_DIR    ?= $(CONTRIB_DIR)/nuclear_data
 DAGMC_DIR           ?= $(CONTRIB_DIR)/DAGMC
 DOUBLEDOWN_DIR      ?= $(CONTRIB_DIR)/double-down
 EMBREE_DIR          ?= $(CONTRIB_DIR)/embree
@@ -19,12 +19,21 @@ SODIUM_DIR          ?= $(CONTRIB_DIR)/sodium
 POTASSIUM_DIR       ?= $(CONTRIB_DIR)/potassium
 IAPWS95_DIR         ?= $(CONTRIB_DIR)/iapws95
 
+# Auto-detect whether each dependency is from-source (has CMakeLists.txt)
+# or pre-installed (external). If <DEP>_DIR points to an install prefix
+# (no CMakeLists.txt), it is used as-is rather than built by Cardinal.
+DAGMC_FROM_SOURCE     := $(if $(wildcard $(DAGMC_DIR)/CMakeLists.txt),yes,no)
+OPENMC_FROM_SOURCE    := $(if $(wildcard $(OPENMC_DIR)/CMakeLists.txt),yes,no)
+MOAB_FROM_SOURCE      := $(if $(wildcard $(MOAB_DIR)/CMakeLists.txt),yes,no)
+DOUBLEDOWN_FROM_SOURCE := $(if $(wildcard $(DOUBLEDOWN_DIR)/CMakeLists.txt),yes,no)
+EMBREE_FROM_SOURCE    := $(if $(wildcard $(EMBREE_DIR)/CMakeLists.txt),yes,no)
+
 # Then, we can find which optional dependencies we have been pulled in
 # by seeing if those directories are empty or not
 MOOSE_CONTENT      := $(shell ls $(MOOSE_DIR) 2> /dev/null)
 NEKRS_CONTENT      := $(shell ls $(NEKRS_DIR) 2> /dev/null)
 OPENMC_CONTENT     := $(shell ls $(OPENMC_DIR) 2> /dev/null)
-NUCLEARDATA_CONTENT:= $(shell ls $(NUCLEARDATA_DIR) 2> /dev/null)
+NUCLEARDATA_CONTENT:= $(shell ls $(NUCLEAR_DATA_DIR) 2> /dev/null)
 DAGMC_CONTENT      := $(shell ls $(DAGMC_DIR) 2> /dev/null)
 DOUBLEDOWN_CONTENT := $(shell ls $(DOUBLEDOWN_DIR) 2> /dev/null)
 EMBREE_CONTENT     := $(shell ls $(EMBREE_DIR) 2> /dev/null)
@@ -89,66 +98,107 @@ ifeq ($(ENABLE_NEK), yes)
 endif
 
 ifeq ($(ENABLE_OPENMC), yes)
-  ifeq ($(OPENMC_CONTENT),)
-    $(error $n"OpenMC does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the OpenMC submodule, use ./scripts/get-dependencies.sh")
+  ifeq ($(OPENMC_FROM_SOURCE),yes)
+    ifeq ($(OPENMC_CONTENT),)
+      $(error $n"OpenMC does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the OpenMC submodule, use ./scripts/get-dependencies.sh")
+    else
+      $(info Cardinal is using OpenMC from          $(OPENMC_DIR))
+    endif
+
+    openmc_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep openmc | cut -c1)
+    ifneq (,$(findstring +,$(openmc_status)))
+      $(warning $n"***WARNING***: Your OpenMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+    endif
   else
-    $(info Cardinal is using OpenMC from          $(OPENMC_DIR))
+    ifneq ($(wildcard $(OPENMC_DIR)/include/libopenmc*),)
+      $(info Cardinal is using external OpenMC from  $(OPENMC_DIR))
+    else
+      $(error $n"External OpenMC not found at $(OPENMC_DIR). Make sure OPENMC_DIR points to the install prefix with include/ and lib/.")
+    endif
   endif
 
   ifeq ($(NUCLEARDATA_CONTENT),)
     $(error $n"nuclear_data does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the nuclear_data submodule, use ./scripts/get-dependencies.sh")
-  else
-    # we dont print out anything about where nuclear_data is coming from because it's a minor dependency and we don't expect anyone to be using different versions of it (and we don't want to confuse them on the cross section library data)
-  endif
-
-  openmc_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep openmc | cut -c1)
-  ifneq (,$(findstring +,$(openmc_status)))
-    $(warning $n"***WARNING***: Your OpenMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
   endif
 endif
 
 ifeq ($(ENABLE_DAGMC), yes)
-  ifeq ($(DAGMC_CONTENT),)
-    $(error $n"DagMC does not seem to be available, but ENABLE_DAGMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the DagMC submodule, use ./scripts/get-dependencies.sh")
+  ifeq ($(DAGMC_FROM_SOURCE),yes)
+    ifeq ($(DAGMC_CONTENT),)
+      $(error $n"DagMC does not seem to be available, but ENABLE_DAGMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the DagMC submodule, use ./scripts/get-dependencies.sh")
+    else
+      $(info Cardinal is using DAGMC from           $(DAGMC_DIR))
+    endif
+
+    DAGMC_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep DAGMC | cut -c1)
+    ifneq (,$(findstring +,$(DAGMC_status)))
+      $(warning $n"***WARNING***: Your DagMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+    endif
   else
-    $(info Cardinal is using DAGMC from           $(DAGMC_DIR))
+    ifneq ($(wildcard $(DAGMC_DIR)/include/dagmc*),)
+      $(info Cardinal is using external DAGMC from   $(DAGMC_DIR))
+    else
+      $(error $n"External DAGMC not found at $(DAGMC_DIR). Make sure DAGMC_DIR points to the install prefix with include/ and lib/.")
+    endif
   endif
+
 	ifeq ($(ENABLE_DOUBLE_DOWN), yes)
-		ifeq ($(DOUBLEDOWN_CONTENT),)
-  	  $(error $n"Double-Down does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Double-Down submodule, use ./scripts/get-dependencies.sh")
-  	else
-  	  $(info Cardinal is using Double-Down from     $(DOUBLEDOWN_DIR))
-  	endif
-		ifeq ($(EMBREE_CONTENT),)
-  	  $(error $n"Embree does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Embree submodule, use ./scripts/get-dependencies.sh")
-  	else
-  	  $(info Cardinal is using Embree from          $(EMBREE_DIR))
+		ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
+			ifeq ($(DOUBLEDOWN_CONTENT),)
+  	    $(error $n"Double-Down does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Double-Down submodule, use ./scripts/get-dependencies.sh")
+  	  else
+  	    $(info Cardinal is using Double-Down from     $(DOUBLEDOWN_DIR))
+  	  endif
+
+			DOUBLEDOWN_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep double-down | cut -c1)
+			ifneq (,$(findstring +,$(DOUBLEDOWN_status)))
+			  $(warning $n"***WARNING***: Your Double-Down submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+			endif
+		else
+			ifneq ($(wildcard $(DOUBLEDOWN_DIR)/include/dd*),)
+			  $(info Cardinal is using external Double-Down from $(DOUBLEDOWN_DIR))
+			else
+			  $(error $n"External Double-Down not found at $(DOUBLEDOWN_DIR). Make sure DOUBLEDOWN_DIR points to the install prefix with include/ and lib/.")
+			endif
+		endif
+
+		ifeq ($(EMBREE_FROM_SOURCE),yes)
+			ifeq ($(EMBREE_CONTENT),)
+  	    $(error $n"Embree does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Embree submodule, use ./scripts/get-dependencies.sh")
+  	  else
+  	    $(info Cardinal is using Embree from          $(EMBREE_DIR))
+  	  endif
+
+			EMBREE_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep embree | cut -c1)
+			ifneq (,$(findstring +,$(EMBREE_status)))
+			  $(warning $n"***WARNING***: Your Embree submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+			endif
+		else
+			ifneq ($(wildcard $(EMBREE_DIR)/include/embree*),)
+			  $(info Cardinal is using external Embree from    $(EMBREE_DIR))
+			else
+			  $(error $n"External Embree not found at $(EMBREE_DIR). Make sure EMBREE_DIR points to the install prefix with include/ and lib/.")
+			endif
 		endif
   endif
-  ifeq ($(MOAB_CONTENT),)
-    $(error $n"Moab does not seem to be available, but ENABLE_DAGMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the Moab submodule, use ./scripts/get-dependencies.sh")
+
+  ifeq ($(MOAB_FROM_SOURCE),yes)
+    ifeq ($(MOAB_CONTENT),)
+      $(error $n"Moab does not seem to be available, but ENABLE_DAGMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the Moab submodule, use ./scripts/get-dependencies.sh")
+    else
+      $(info Cardinal is using Moab from            $(MOAB_DIR))
+    endif
+
+    moab_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep moab | cut -c1)
+    ifneq (,$(findstring +,$(moab_status)))
+      $(warning $n"***WARNING***: Your Moab submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+    endif
   else
-    $(info Cardinal is using Moab from            $(MOAB_DIR))
-  endif
-
-  DAGMC_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep DAGMC | cut -c1)
-  ifneq (,$(findstring +,$(DAGMC_status)))
-    $(warning $n"***WARNING***: Your DagMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
-  endif
-
-	EMBREE_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep embree | cut -c1)
-  ifneq (,$(findstring +,$(EMBREE_status)))
-    $(warning $n"***WARNING***: Your Embree submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
-  endif
-
-	DOUBLEDOWN_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep double-down | cut -c1)
-  ifneq (,$(findstring +,$(DOUBLEDOWN_status)))
-    $(warning $n"***WARNING***: Your Double-Down submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
-  endif
-
-  moab_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep moab | cut -c1)
-  ifneq (,$(findstring +,$(moab_status)))
-    $(warning $n"***WARNING***: Your Moab submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+    ifneq ($(wildcard $(MOAB_DIR)/include/moab*),)
+      $(info Cardinal is using external Moab from      $(MOAB_DIR))
+    else
+      $(error $n"External MOAB not found at $(MOAB_DIR). Make sure MOAB_DIR points to the install prefix with include/ and lib/.")
+    endif
   endif
 endif
 
