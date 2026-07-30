@@ -118,7 +118,7 @@ ifeq ($(ENABLE_OPENMC), yes)
   endif
 
   ifeq ($(NUCLEARDATA_CONTENT),)
-    $(error $n"nuclear_data does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the nuclear_data submodule, use ./scripts/get-dependencies.sh")
+    $(info $n"nuclear_data does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the nuclear_data submodule, use ./scripts/get-dependencies.sh")
   endif
 endif
 
