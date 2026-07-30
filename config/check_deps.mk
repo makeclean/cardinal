@@ -117,8 +117,10 @@ ifeq ($(ENABLE_OPENMC), yes)
     endif
   endif
 
-  ifeq ($(NUCLEARDATA_CONTENT),)
-    $(info $n"nuclear_data does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the nuclear_data submodule, use ./scripts/get-dependencies.sh")
+  ifeq ($(OPENMC_FROM_SOURCE),yes)
+    ifeq ($(NUCLEARDATA_CONTENT),)
+      $(info $n"nuclear_data does not seem to be available, but ENABLE_OPENMC is enabled. Make sure that the submodule is checked out.$n$nTo fetch the nuclear_data submodule, use ./scripts/get-dependencies.sh")
+    endif
   endif
 endif
 
@@ -142,44 +144,44 @@ ifeq ($(ENABLE_DAGMC), yes)
     endif
   endif
 
-	ifeq ($(ENABLE_DOUBLE_DOWN), yes)
-		ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
-			ifeq ($(DOUBLEDOWN_CONTENT),)
-  	    $(error $n"Double-Down does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Double-Down submodule, use ./scripts/get-dependencies.sh")
-  	  else
-  	    $(info Cardinal is using Double-Down from     $(DOUBLEDOWN_DIR))
-  	  endif
+  ifeq ($(ENABLE_DOUBLE_DOWN), yes)
+    ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
+      ifeq ($(DOUBLEDOWN_CONTENT),)
+        $(error $n"Double-Down does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Double-Down submodule, use ./scripts/get-dependencies.sh")
+      else
+        $(info Cardinal is using Double-Down from     $(DOUBLEDOWN_DIR))
+      endif
 
-			DOUBLEDOWN_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep double-down | cut -c1)
-			ifneq (,$(findstring +,$(DOUBLEDOWN_status)))
-			  $(warning $n"***WARNING***: Your Double-Down submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
-			endif
-		else
-			ifneq ($(wildcard $(DOUBLEDOWN_DIR)/include/dd*),)
-			  $(info Cardinal is using external Double-Down from $(DOUBLEDOWN_DIR))
-			else
-			  $(error $n"External Double-Down not found at $(DOUBLEDOWN_DIR). Make sure DOUBLEDOWN_DIR points to the install prefix with include/ and lib/.")
-			endif
-		endif
+      DOUBLEDOWN_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep double-down | cut -c1)
+      ifneq (,$(findstring +,$(DOUBLEDOWN_status)))
+        $(warning $n"***WARNING***: Your Double-Down submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+      endif
+    else
+      ifneq ($(wildcard $(DOUBLEDOWN_DIR)/include/dd*),)
+        $(info Cardinal is using external Double-Down from $(DOUBLEDOWN_DIR))
+      else
+        $(error $n"External Double-Down not found at $(DOUBLEDOWN_DIR). Make sure DOUBLEDOWN_DIR points to the install prefix with include/ and lib/.")
+      endif
+    endif
 
-		ifeq ($(EMBREE_FROM_SOURCE),yes)
-			ifeq ($(EMBREE_CONTENT),)
-  	    $(error $n"Embree does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Embree submodule, use ./scripts/get-dependencies.sh")
-  	  else
-  	    $(info Cardinal is using Embree from          $(EMBREE_DIR))
-  	  endif
+    ifeq ($(EMBREE_FROM_SOURCE),yes)
+      ifeq ($(EMBREE_CONTENT),)
+        $(error $n"Embree does not seem to be available, but ENABLE_DAGMC and ENABLE_DOUBLE_DOWN are enabled. Make sure that the submodule is checked out.$n$nTo fetch the Embree submodule, use ./scripts/get-dependencies.sh")
+      else
+        $(info Cardinal is using Embree from          $(EMBREE_DIR))
+      endif
 
-			EMBREE_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep embree | cut -c1)
-			ifneq (,$(findstring +,$(EMBREE_status)))
-			  $(warning $n"***WARNING***: Your Embree submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
-			endif
-		else
-			ifneq ($(wildcard $(EMBREE_DIR)/include/embree*),)
-			  $(info Cardinal is using external Embree from    $(EMBREE_DIR))
-			else
-			  $(error $n"External Embree not found at $(EMBREE_DIR). Make sure EMBREE_DIR points to the install prefix with include/ and lib/.")
-			endif
-		endif
+      EMBREE_status := $(shell git -C $(CONTRIB_DIR) submodule status 2>/dev/null | grep embree | cut -c1)
+      ifneq (,$(findstring +,$(EMBREE_status)))
+        $(warning $n"***WARNING***: Your Embree submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
+      endif
+    else
+      ifneq ($(wildcard $(EMBREE_DIR)/include/embree*),)
+        $(info Cardinal is using external Embree from    $(EMBREE_DIR))
+      else
+        $(error $n"External Embree not found at $(EMBREE_DIR). Make sure EMBREE_DIR points to the install prefix with include/ and lib/.")
+      endif
+    endif
   endif
 
   ifeq ($(MOAB_FROM_SOURCE),yes)
