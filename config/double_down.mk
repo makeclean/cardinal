@@ -1,3 +1,14 @@
+ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
+
+build_doubledown:
+	$(info Using external Double-Down from $(DOUBLEDOWN_DIR))
+
+cleanall_doubledown:
+
+clobber_doubledown:
+
+else
+
 $(DOUBLEDOWN_BUILDDIR)/Makefile: build_moab build_embree | $(DOUBLEDOWN_DIR)/CMakeLists.txt
 	mkdir -p $(DOUBLEDOWN_BUILDDIR)
 	cd $(DOUBLEDOWN_BUILDDIR) && \
@@ -28,3 +39,5 @@ cleanall: cleanall_doubledown
 clobberall: clobber_doubledown
 
 .PHONY: build_doubledown cleanall_doubledown clobber_doubledown
+
+endif

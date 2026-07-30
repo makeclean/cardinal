@@ -10,6 +10,8 @@
 # * NEKRS_DIR        : Top-level NekRS dir (default: $(CONTRIB_DIR)/nekRS)
 # * OPENMC_DIR       : Top-level OpenMC dir (default: $(CONTRIB_DIR)/openmc)
 # * DAGMC_DIR        : Top-level DagMC dir (default: $(CONTRIB_DIR)/DAGMC)
+# * EMBREE_DIR       : Top-level Embree dir (default: $(CONTRIB_DIR)/embree)
+# * DOUBLEDOWN_DIR   : Top-level Double-Down dir (default: $(CONTRIB_DIR)/double-down)
 # * MOAB_DIR         : Top-level Moab dir (default: $(CONTRIB_DIR)/moab)
 # * GRIFFIN_DIR      : Top-level Griffin dir (default: $(CONTRIB_DIR)/griffin)
 # * BISON_DIR        : Top-level Bison dir (default: $(CONTRIB_DIR)/bison)
@@ -21,6 +23,13 @@
 
 # * EIGEN3_DIR       : Top-level eigen3 dir (should contain FindEigen3.cmake). This
 #                      is only needed if enabling DagMC.
+
+# By default, Cardinal builds dependencies from bundled submodules in contrib/.
+# To use a pre-installed (external) version instead, set <DEP>_DIR to the install
+# prefix (directory with include/ and lib/). If <DEP>_DIR contains a CMakeLists.txt
+# it is treated as a source tree and built by Cardinal; otherwise it is used as-is.
+# When DAGMC_DIR points to an install prefix, its transitive dependencies (MOAB,
+# Double-Down, Embree) are also treated as external automatically.
 
 # To control where OpenMC grabs HDF5 from; you don't need to set any of these unless
 # you don't want to use the HDF5 that comes with PETSc
@@ -125,17 +134,34 @@ else
     USE_OPENMC_VENDORED_LIBS := OFF
 endif
 
-DAGMC_BUILDDIR := $(CARDINAL_DIR)/build/DAGMC
-DAGMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
 
-DOUBLEDOWN_BUILDDIR := $(CARDINAL_DIR)/build/double-down
-DOUBLEDOWN_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+ifeq ($(DAGMC_FROM_SOURCE),yes)
+  DAGMC_BUILDDIR := $(CARDINAL_DIR)/build/DAGMC
+  DAGMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+else
+  DAGMC_INSTALL_DIR := $(DAGMC_DIR)
+endif
 
-EMBREE_BUILDDIR := $(CARDINAL_DIR)/build/embree
-EMBREE_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
+  DOUBLEDOWN_BUILDDIR := $(CARDINAL_DIR)/build/double-down
+  DOUBLEDOWN_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+else
+  DOUBLEDOWN_INSTALL_DIR := $(DOUBLEDOWN_DIR)
+endif
 
-MOAB_BUILDDIR := $(CARDINAL_DIR)/build/moab
-MOAB_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+ifeq ($(EMBREE_FROM_SOURCE),yes)
+  EMBREE_BUILDDIR := $(CARDINAL_DIR)/build/embree
+  EMBREE_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+else
+  EMBREE_INSTALL_DIR := $(EMBREE_DIR)
+endif
+
+ifeq ($(MOAB_FROM_SOURCE),yes)
+  MOAB_BUILDDIR := $(CARDINAL_DIR)/build/moab
+  MOAB_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+else
+  MOAB_INSTALL_DIR := $(MOAB_DIR)
+endif
 
 NEKRS_BUILDDIR := $(CARDINAL_DIR)/build/nekrs
 NEKRS_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
@@ -179,8 +205,12 @@ NEKRS_LIB := $(NEKRS_LIBDIR)/libnekrs.so
 # This needs to be exported
 export NEKRS_HOME=$(CARDINAL_DIR)
 
-OPENMC_BUILDDIR := $(CARDINAL_DIR)/build/openmc
-OPENMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+ifeq ($(OPENMC_FROM_SOURCE),yes)
+  OPENMC_BUILDDIR := $(CARDINAL_DIR)/build/openmc
+  OPENMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+else
+  OPENMC_INSTALL_DIR := $(OPENMC_DIR)
+endif
 OPENMC_INCLUDES := -I$(OPENMC_INSTALL_DIR)/include
 OPENMC_LIBDIR := $(OPENMC_INSTALL_DIR)/lib
 OPENMC_LIB := $(OPENMC_LIBDIR)/libopenmc.so
@@ -246,14 +276,28 @@ BUILD_EXEC         := yes
 
 ifeq ($(ENABLE_DAGMC), yes)
   ENABLE_DAGMC     := ON
-  include          $(CARDINAL_DIR)/config/moab.mk
-	ifeq ($(ENABLE_DOUBLE_DOWN), yes)
-		ENABLE_DOUBLE_DOWN := ON
-		include        $(CARDINAL_DIR)/config/embree.mk
-		include        $(CARDINAL_DIR)/config/double_down.mk
-	else
-		ENABLE_DOUBLE_DOWN := OFF
-	endif
+  ifeq ($(ENABLE_DOUBLE_DOWN), yes)
+    ENABLE_DOUBLE_DOWN := ON
+  else
+    ENABLE_DOUBLE_DOWN := OFF
+  endif
+  ifeq ($(DAGMC_FROM_SOURCE),yes)
+    include          $(CARDINAL_DIR)/config/moab.mk
+    ifeq ($(ENABLE_DOUBLE_DOWN), ON)
+      include        $(CARDINAL_DIR)/config/embree.mk
+      include        $(CARDINAL_DIR)/config/double_down.mk
+    endif
+  else
+    # DAGMC_DIR points to an install prefix; its transitive deps are external too
+build_moab:
+	$(info DAGMC_DIR is an install prefix; skipping MOAB build)
+
+build_embree:
+	$(info DAGMC_DIR is an install prefix; skipping Embree build)
+
+build_doubledown:
+	$(info DAGMC_DIR is an install prefix; skipping Double-Down build)
+  endif
   include          $(CARDINAL_DIR)/config/dagmc.mk
 else
 
@@ -271,7 +315,7 @@ build_moab:
 
 endif
 
-ifeq ($(ENABLE_DOUBLE_DOWN), OFF)
+ifeq ($(ENABLE_DOUBLE_DOWN)$(DAGMC_FROM_SOURCE), OFFyes)
 build_doubledown: build_moab
 	$(info Skipping Double-Down build because ENABLE_DOUBLE_DOWN is not set to 'yes')
 
@@ -322,10 +366,16 @@ endif
 ifeq ($(ENABLE_OPENMC), yes)
   ADDITIONAL_LIBS += -L$(OPENMC_LIBDIR) -lopenmc -lhdf5_hl
   ifeq ($(ENABLE_DAGMC), ON)
+    ifeq ($(DAGMC_FROM_SOURCE),no)
+      ADDITIONAL_LIBS += -L$(DAGMC_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DAGMC_INSTALL_DIR)/lib
+    endif
     ADDITIONAL_LIBS += -ldagmc -lMOAB
-		ifeq ($(ENABLE_DOUBLE_DOWN), ON)
-			ADDITIONAL_LIBS += -lembree4 -ldd
-		endif
+    ifeq ($(ENABLE_DOUBLE_DOWN), ON)
+      ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
+        ADDITIONAL_LIBS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
+      endif
+      ADDITIONAL_LIBS += -lembree4 -ldd
+    endif
   endif
   ADDITIONAL_LIBS += $(CC_LINKER_SLFLAG)$(OPENMC_LIBDIR)
 endif
@@ -361,10 +411,16 @@ endif
 ifeq ($(ENABLE_OPENMC), yes)
   CARDINAL_EXTERNAL_FLAGS += -L$(OPENMC_LIBDIR) -L$(HDF5_LIBDIR) -lopenmc
   ifeq ($(ENABLE_DAGMC), ON)
+    ifeq ($(DAGMC_FROM_SOURCE),no)
+      CARDINAL_EXTERNAL_FLAGS += -L$(DAGMC_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DAGMC_INSTALL_DIR)/lib
+    endif
     CARDINAL_EXTERNAL_FLAGS += -ldagmc -lMOAB
-		ifeq ($(ENABLE_DOUBLE_DOWN), ON)
-			CARDINAL_EXTERNAL_FLAGS += -lembree4 -ldd
-		endif
+    ifeq ($(ENABLE_DOUBLE_DOWN), ON)
+      ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
+        CARDINAL_EXTERNAL_FLAGS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
+      endif
+      CARDINAL_EXTERNAL_FLAGS += -lembree4 -ldd
+    endif
   endif
   CARDINAL_EXTERNAL_FLAGS += $(CC_LINKER_SLFLAG)$(OPENMC_LIBDIR) \
 	                           $(CC_LINKER_SLFLAG)$(HDF5_LIBDIR)
