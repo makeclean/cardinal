@@ -288,22 +288,10 @@ ifeq ($(ENABLE_DAGMC), yes)
   else
     ENABLE_DOUBLE_DOWN := OFF
   endif
-  ifeq ($(DAGMC_FROM_SOURCE),yes)
-    include          $(CARDINAL_DIR)/config/moab.mk
-    ifeq ($(ENABLE_DOUBLE_DOWN), ON)
-      include        $(CARDINAL_DIR)/config/embree.mk
-      include        $(CARDINAL_DIR)/config/double_down.mk
-    endif
-  else
-    # DAGMC_DIR points to an install prefix; its transitive deps are external too
-build_moab:
-	$(info DAGMC_DIR is an install prefix; skipping MOAB build)
-
-build_embree:
-	$(info DAGMC_DIR is an install prefix; skipping Embree build)
-
-build_doubledown:
-	$(info DAGMC_DIR is an install prefix; skipping Double-Down build)
+  include          $(CARDINAL_DIR)/config/moab.mk
+  ifeq ($(ENABLE_DOUBLE_DOWN), ON)
+    include        $(CARDINAL_DIR)/config/embree.mk
+    include        $(CARDINAL_DIR)/config/double_down.mk
   endif
   include          $(CARDINAL_DIR)/config/dagmc.mk
 else
@@ -322,8 +310,8 @@ build_moab:
 
 endif
 
-ifeq ($(ENABLE_DOUBLE_DOWN)$(DAGMC_FROM_SOURCE), OFFyes)
-build_doubledown: build_moab
+ifeq ($(ENABLE_DOUBLE_DOWN), OFF)
+build_doubledown:
 	$(info Skipping Double-Down build because ENABLE_DOUBLE_DOWN is not set to 'yes')
 
 build_embree:
