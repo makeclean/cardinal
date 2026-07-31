@@ -25,11 +25,10 @@
 #                      is only needed if enabling DagMC.
 
 # By default, Cardinal builds dependencies from bundled submodules in contrib/.
-# To use a pre-installed (external) version instead, set <DEP>_DIR to the install
-# prefix (directory with include/ and lib/). If <DEP>_DIR contains a CMakeLists.txt
-# it is treated as a source tree and built by Cardinal; otherwise it is used as-is.
-# When DAGMC_DIR points to an install prefix, its transitive dependencies (MOAB,
-# Double-Down, Embree) are also treated as external automatically.
+# To use a pre-built (external) version instead, explicitly set <DEP>_DIR to its
+# install prefix (a directory with the compiled library in lib/ and headers in
+# include/). Any dependency whose <DEP>_DIR is left at its default is built from
+# source by Cardinal; any that is explicitly set is used as-is.
 
 # To control where OpenMC grabs HDF5 from; you don't need to set any of these unless
 # you don't want to use the HDF5 that comes with PETSc
@@ -362,6 +361,9 @@ ifeq ($(ENABLE_OPENMC), yes)
       ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
         ADDITIONAL_LIBS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
       endif
+      ifeq ($(EMBREE_FROM_SOURCE),no)
+        ADDITIONAL_LIBS += -L$(EMBREE_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(EMBREE_INSTALL_DIR)/lib
+      endif
       ADDITIONAL_LIBS += -lembree4 -ldd
     endif
   endif
@@ -406,6 +408,9 @@ ifeq ($(ENABLE_OPENMC), yes)
     ifeq ($(ENABLE_DOUBLE_DOWN), ON)
       ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
         CARDINAL_EXTERNAL_FLAGS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
+      endif
+      ifeq ($(EMBREE_FROM_SOURCE),no)
+        CARDINAL_EXTERNAL_FLAGS += -L$(EMBREE_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(EMBREE_INSTALL_DIR)/lib
       endif
       CARDINAL_EXTERNAL_FLAGS += -lembree4 -ldd
     endif
