@@ -31,6 +31,13 @@ MOAB_FROM_SOURCE      := $(call check_from_source,MOAB_DIR)
 DOUBLEDOWN_FROM_SOURCE := $(call check_from_source,DOUBLEDOWN_DIR)
 EMBREE_FROM_SOURCE    := $(call check_from_source,EMBREE_DIR)
 
+# Some systems (e.g. RedHat-based) install 64-bit libraries under lib64/
+# instead of lib/. Resolve the lib dir for an install prefix, preferring lib64/
+# when it holds the library and falling back to lib/.
+define find_libdir
+$(if $(wildcard $1/lib64/$2),$1/lib64,$1/lib)
+endef
+
 # Then, we can find which optional dependencies we have been pulled in
 # by seeing if those directories are empty or not
 MOOSE_CONTENT      := $(shell ls $(MOOSE_DIR) 2> /dev/null)
@@ -113,10 +120,10 @@ ifeq ($(ENABLE_OPENMC), yes)
       $(warning $n"***WARNING***: Your OpenMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
     endif
   else
-    ifneq ($(wildcard $(OPENMC_DIR)/lib/libopenmc*),)
+    ifneq ($(wildcard $(OPENMC_DIR)/lib/libopenmc* $(OPENMC_DIR)/lib64/libopenmc*),)
       $(info Cardinal is using external OpenMC from  $(OPENMC_DIR))
     else
-      $(error $n"External OpenMC not found at $(OPENMC_DIR). Make sure OPENMC_DIR points to a pre-built install with lib/libopenmc*.")
+      $(error $n"External OpenMC not found at $(OPENMC_DIR). Make sure OPENMC_DIR points to a pre-built install with lib/libopenmc* or lib64/libopenmc*.")
     endif
   endif
 
@@ -140,10 +147,10 @@ ifeq ($(ENABLE_DAGMC), yes)
       $(warning $n"***WARNING***: Your DagMC submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
     endif
   else
-    ifneq ($(wildcard $(DAGMC_DIR)/lib/libdagmc*),)
+    ifneq ($(wildcard $(DAGMC_DIR)/lib/libdagmc* $(DAGMC_DIR)/lib64/libdagmc*),)
       $(info Cardinal is using external DAGMC from   $(DAGMC_DIR))
     else
-      $(error $n"External DAGMC not found at $(DAGMC_DIR). Make sure DAGMC_DIR points to a pre-built install with lib/libdagmc*.")
+      $(error $n"External DAGMC not found at $(DAGMC_DIR). Make sure DAGMC_DIR points to a pre-built install with lib/libdagmc* or lib64/libdagmc*.")
     endif
   endif
 
@@ -160,10 +167,10 @@ ifeq ($(ENABLE_DAGMC), yes)
         $(warning $n"***WARNING***: Your Double-Down submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
       endif
     else
-      ifneq ($(wildcard $(DOUBLEDOWN_DIR)/lib/libdd*),)
+      ifneq ($(wildcard $(DOUBLEDOWN_DIR)/lib/libdd* $(DOUBLEDOWN_DIR)/lib64/libdd*),)
         $(info Cardinal is using external Double-Down from $(DOUBLEDOWN_DIR))
       else
-        $(error $n"External Double-Down not found at $(DOUBLEDOWN_DIR). Make sure DOUBLEDOWN_DIR points to a pre-built install with lib/libdd*.")
+        $(error $n"External Double-Down not found at $(DOUBLEDOWN_DIR). Make sure DOUBLEDOWN_DIR points to a pre-built install with lib/libdd* or lib64/libdd*.")
       endif
     endif
 
@@ -179,10 +186,10 @@ ifeq ($(ENABLE_DAGMC), yes)
         $(warning $n"***WARNING***: Your Embree submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
       endif
     else
-      ifneq ($(wildcard $(EMBREE_DIR)/lib/libembree*),)
+      ifneq ($(wildcard $(EMBREE_DIR)/lib/libembree* $(EMBREE_DIR)/lib64/libembree*),)
         $(info Cardinal is using external Embree from    $(EMBREE_DIR))
       else
-        $(error $n"External Embree not found at $(EMBREE_DIR). Make sure EMBREE_DIR points to a pre-built install with lib/libembree*.")
+        $(error $n"External Embree not found at $(EMBREE_DIR). Make sure EMBREE_DIR points to a pre-built install with lib/libembree* or lib64/libembree*.")
       endif
     endif
   endif
@@ -199,10 +206,10 @@ ifeq ($(ENABLE_DAGMC), yes)
       $(warning $n"***WARNING***: Your Moab submodule is not pointing to the commit tied to Cardinal.$n                To fetch the paired commit, use ./scripts/get-dependencies.sh"$n)
     endif
   else
-    ifneq ($(wildcard $(MOAB_DIR)/lib/libMOAB*),)
+    ifneq ($(wildcard $(MOAB_DIR)/lib/libMOAB* $(MOAB_DIR)/lib64/libMOAB*),)
       $(info Cardinal is using external Moab from      $(MOAB_DIR))
     else
-      $(error $n"External MOAB not found at $(MOAB_DIR). Make sure MOAB_DIR points to a pre-built install with lib/libMOAB*.")
+      $(error $n"External MOAB not found at $(MOAB_DIR). Make sure MOAB_DIR points to a pre-built install with lib/libMOAB* or lib64/libMOAB*.")
     endif
   endif
 endif

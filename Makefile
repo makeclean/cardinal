@@ -25,11 +25,10 @@
 #                      is only needed if enabling DagMC.
 
 # By default, Cardinal builds dependencies from bundled submodules in contrib/.
-# To use a pre-installed (external) version instead, set <DEP>_DIR to the install
-# prefix (directory with include/ and lib/). If <DEP>_DIR contains a CMakeLists.txt
-# it is treated as a source tree and built by Cardinal; otherwise it is used as-is.
-# When DAGMC_DIR points to an install prefix, its transitive dependencies (MOAB,
-# Double-Down, Embree) are also treated as external automatically.
+# To use a pre-built (external) version instead, explicitly set <DEP>_DIR to its
+# install prefix (a directory with the compiled library in lib/ and headers in
+# include/). Any dependency whose <DEP>_DIR is left at its default is built from
+# source by Cardinal; any that is explicitly set is used as-is.
 
 # To control where OpenMC grabs HDF5 from; you don't need to set any of these unless
 # you don't want to use the HDF5 that comes with PETSc
@@ -147,6 +146,7 @@ ifeq ($(DAGMC_FROM_SOURCE),yes)
 else
   DAGMC_INSTALL_DIR := $(DAGMC_DIR)
 endif
+DAGMC_LIBDIR := $(call find_libdir,$(DAGMC_INSTALL_DIR),libdagmc*)
 
 ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
   DOUBLEDOWN_BUILDDIR := $(CARDINAL_DIR)/build/double-down
@@ -154,6 +154,7 @@ ifeq ($(DOUBLEDOWN_FROM_SOURCE),yes)
 else
   DOUBLEDOWN_INSTALL_DIR := $(DOUBLEDOWN_DIR)
 endif
+DOUBLEDOWN_LIBDIR := $(call find_libdir,$(DOUBLEDOWN_INSTALL_DIR),libdd*)
 
 ifeq ($(EMBREE_FROM_SOURCE),yes)
   EMBREE_BUILDDIR := $(CARDINAL_DIR)/build/embree
@@ -161,6 +162,7 @@ ifeq ($(EMBREE_FROM_SOURCE),yes)
 else
   EMBREE_INSTALL_DIR := $(EMBREE_DIR)
 endif
+EMBREE_LIBDIR := $(call find_libdir,$(EMBREE_INSTALL_DIR),libembree*)
 
 ifeq ($(MOAB_FROM_SOURCE),yes)
   MOAB_BUILDDIR := $(CARDINAL_DIR)/build/moab
@@ -168,6 +170,7 @@ ifeq ($(MOAB_FROM_SOURCE),yes)
 else
   MOAB_INSTALL_DIR := $(MOAB_DIR)
 endif
+MOAB_LIBDIR := $(call find_libdir,$(MOAB_INSTALL_DIR),libMOAB*)
 
 NEKRS_BUILDDIR := $(CARDINAL_DIR)/build/nekrs
 NEKRS_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
@@ -218,7 +221,7 @@ else
   OPENMC_INSTALL_DIR := $(OPENMC_DIR)
 endif
 OPENMC_INCLUDES := -I$(OPENMC_INSTALL_DIR)/include
-OPENMC_LIBDIR := $(OPENMC_INSTALL_DIR)/lib
+OPENMC_LIBDIR := $(call find_libdir,$(OPENMC_INSTALL_DIR),libopenmc*)
 OPENMC_LIB := $(OPENMC_LIBDIR)/libopenmc.so
 
 ADDITIONAL_INCLUDES += -I$(CONTRIB_DIR)/nuclear_data
@@ -362,12 +365,18 @@ ifeq ($(ENABLE_OPENMC), yes)
   ADDITIONAL_LIBS += -L$(OPENMC_LIBDIR) -lopenmc -lhdf5_hl
   ifeq ($(ENABLE_DAGMC), ON)
     ifeq ($(DAGMC_FROM_SOURCE),no)
-      ADDITIONAL_LIBS += -L$(DAGMC_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DAGMC_INSTALL_DIR)/lib
+      ADDITIONAL_LIBS += -L$(DAGMC_LIBDIR) $(CC_LINKER_SLFLAG)$(DAGMC_LIBDIR)
     endif
     ADDITIONAL_LIBS += -ldagmc -lMOAB
+    ifeq ($(MOAB_FROM_SOURCE),no)
+      ADDITIONAL_LIBS += -L$(MOAB_LIBDIR) $(CC_LINKER_SLFLAG)$(MOAB_LIBDIR)
+    endif
     ifeq ($(ENABLE_DOUBLE_DOWN), ON)
       ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
-        ADDITIONAL_LIBS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
+        ADDITIONAL_LIBS += -L$(DOUBLEDOWN_LIBDIR) $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_LIBDIR)
+      endif
+      ifeq ($(EMBREE_FROM_SOURCE),no)
+        ADDITIONAL_LIBS += -L$(EMBREE_LIBDIR) $(CC_LINKER_SLFLAG)$(EMBREE_LIBDIR)
       endif
       ADDITIONAL_LIBS += -lembree4 -ldd
     endif
@@ -403,12 +412,18 @@ ifeq ($(ENABLE_OPENMC), yes)
   CARDINAL_EXTERNAL_FLAGS += -L$(OPENMC_LIBDIR) -L$(HDF5_LIBDIR) -lopenmc
   ifeq ($(ENABLE_DAGMC), ON)
     ifeq ($(DAGMC_FROM_SOURCE),no)
-      CARDINAL_EXTERNAL_FLAGS += -L$(DAGMC_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DAGMC_INSTALL_DIR)/lib
+      CARDINAL_EXTERNAL_FLAGS += -L$(DAGMC_LIBDIR) $(CC_LINKER_SLFLAG)$(DAGMC_LIBDIR)
     endif
     CARDINAL_EXTERNAL_FLAGS += -ldagmc -lMOAB
+    ifeq ($(MOAB_FROM_SOURCE),no)
+      CARDINAL_EXTERNAL_FLAGS += -L$(MOAB_LIBDIR) $(CC_LINKER_SLFLAG)$(MOAB_LIBDIR)
+    endif
     ifeq ($(ENABLE_DOUBLE_DOWN), ON)
       ifeq ($(DOUBLEDOWN_FROM_SOURCE),no)
-        CARDINAL_EXTERNAL_FLAGS += -L$(DOUBLEDOWN_INSTALL_DIR)/lib $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_INSTALL_DIR)/lib
+        CARDINAL_EXTERNAL_FLAGS += -L$(DOUBLEDOWN_LIBDIR) $(CC_LINKER_SLFLAG)$(DOUBLEDOWN_LIBDIR)
+      endif
+      ifeq ($(EMBREE_FROM_SOURCE),no)
+        CARDINAL_EXTERNAL_FLAGS += -L$(EMBREE_LIBDIR) $(CC_LINKER_SLFLAG)$(EMBREE_LIBDIR)
       endif
       CARDINAL_EXTERNAL_FLAGS += -lembree4 -ldd
     endif
