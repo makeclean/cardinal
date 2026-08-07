@@ -27,7 +27,7 @@ registerMooseObject("CardinalApp", MeshTally);
 InputParameters
 MeshTally::validParams()
 {
-  auto params = TallyBase::validParams();
+  auto params = MeshTallyBase::validParams();
   params.addClassDescription("A class which implements unstructured mesh tallies.");
   params.addParam<std::string>("mesh_template",
                                "Mesh tally template for OpenMC when using mesh tallies; "
@@ -45,25 +45,12 @@ MeshTally::validParams()
 }
 
 MeshTally::MeshTally(const InputParameters & parameters)
-  : TallyBase(parameters),
+  : MeshTallyBase(parameters),
     _mesh_translation(isParamValid("mesh_translation") ? getParam<Point>("mesh_translation")
                                                        : Point(0.0, 0.0, 0.0)),
     _instance(getParam<unsigned int>("instance")),
     _use_dof_map(_is_adaptive || isParamValid("block"))
 {
-  bool nu_scatter =
-      std::find(_tally_score.begin(), _tally_score.end(), "nu-scatter") != _tally_score.end();
-
-  // Error check the estimators.
-  if (isParamValid("estimator"))
-  {
-    if (_estimator == openmc::TallyEstimator::TRACKLENGTH)
-      paramError("estimator",
-                 "Tracklength estimators are currently incompatible with mesh tallies!");
-  }
-  else
-    _estimator = nu_scatter ? openmc::TallyEstimator::ANALOG : openmc::TallyEstimator::COLLISION;
-
   // Error check the mesh template.
   if (_openmc_problem.getMooseMesh().getMesh().allow_renumbering() &&
       !_openmc_problem.getMooseMesh().getMesh().is_replicated())
@@ -112,10 +99,6 @@ MeshTally::MeshTally(const InputParameters & parameters)
    */
   if (_instance != 0)
     _tally_name = std::vector<std::string>();
-
-  // The random ray solver requires tracklength estimators, which unstructured meshes don't support.
-  if (_openmc_problem.runRandomRay())
-    mooseError("Unstructured mesh tallies are not supported when using the random ray solver!");
 }
 
 std::pair<unsigned int, openmc::Filter *>
@@ -161,23 +144,13 @@ MeshTally::spatialFilter()
   _mesh_template->set_id(-1);
   _mesh_template->output_ = false;
 
-  _mesh_filter = dynamic_cast<openmc::MeshFilter *>(openmc::Filter::create("mesh"));
-  _mesh_filter->set_mesh(_mesh_index);
+  createMeshFilter(_mesh_index);
   _mesh_filter->set_translation({_mesh_translation(0), _mesh_translation(1), _mesh_translation(2)});
 
   // Validate the mesh filters to make sure we can run a copy transfer to the [Mesh].
   checkMeshTemplateAndTranslations();
 
   return std::make_pair(openmc::model::tally_filters.size() - 1, _mesh_filter);
-}
-
-void
-MeshTally::resetTally()
-{
-  TallyBase::resetTally();
-
-  // Erase the OpenMC mesh.
-  openmc::model::meshes.erase(openmc::model::meshes.begin() + _mesh_index);
 }
 
 void
@@ -199,40 +172,15 @@ MeshTally::gatherLinkedSum()
 }
 
 Real
-MeshTally::storeResultsInner(const std::vector<unsigned int> & var_numbers,
-                             unsigned int local_score,
-                             const std::vector<OMCTensor> & tally_vals,
-                             bool norm_by_src_rate)
+MeshTally::binVolume(unsigned int bin) const
 {
-  Real total = 0.0;
+  return _mesh_template->volume(bin);
+}
 
-  unsigned int mesh_offset = _instance * _mesh_filter->n_bins();
-  for (unsigned int ext_bin = 0; ext_bin < _num_ext_filter_bins; ++ext_bin)
-  {
-    for (decltype(_mesh_filter->n_bins()) e = 0; e < _mesh_filter->n_bins(); ++e)
-    {
-      Real unnormalized_tally = tally_vals[local_score](ext_bin * _mesh_filter->n_bins() + e);
-
-      // divide each tally by the volume that it corresponds to in MOOSE
-      // because we will apply it as a volumetric tally (per unit volume).
-      // Because we require that the mesh template has units of cm based on the
-      // mesh constructors in OpenMC, we need to adjust the division
-      Real volumetric_tally = unnormalized_tally;
-      volumetric_tally *= norm_by_src_rate
-                              ? _openmc_problem.tallyMultiplier(_tally_score[local_score],
-                                                                _local_mean_tally[local_score]) /
-                                    _mesh_template->volume(e) * _openmc_problem.scaling() *
-                                    _openmc_problem.scaling() * _openmc_problem.scaling()
-                              : 1.0;
-      total += _ext_bins_to_skip[ext_bin] ? 0.0 : unnormalized_tally;
-
-      auto var = var_numbers[_num_ext_filter_bins * local_score + ext_bin];
-      auto elem_id = _use_dof_map ? _bin_to_element_mapping[e] : mesh_offset + e;
-      fillElementalAuxVariable(var, {elem_id}, volumetric_tally);
-    }
-  }
-
-  return total;
+unsigned int
+MeshTally::binToElemId(unsigned int bin) const
+{
+  return _use_dof_map ? _bin_to_element_mapping[bin] : _instance * _mesh_filter->n_bins() + bin;
 }
 
 void

@@ -18,17 +18,15 @@
 
 #pragma once
 
-#include "TallyBase.h"
+#include "MeshTallyBase.h"
 #include "OpenMCCellAverageProblem.h"
-
-#include "openmc/tallies/filter_mesh.h"
 
 namespace libMesh
 {
 class ReplicatedMesh;
 }
 
-class MeshTally : public TallyBase
+class MeshTally : public MeshTallyBase
 {
 public:
   static InputParameters validParams();
@@ -41,9 +39,6 @@ public:
    * second entry is an OpenMC unstructured mesh filter
    */
   virtual std::pair<unsigned int, openmc::Filter *> spatialFilter() override;
-
-  /// A function to reset the tally. MeshTally overrides this function to delete the OpenMC mesh.
-  virtual void resetTally() override;
 
   /**
    * A function which gathers the sums and means from all tallies linked to this tally. MeshTally
@@ -59,20 +54,6 @@ public:
   virtual bool addingGlobalTally() const override { return _needs_global_tally && _instance == 0; }
 
 protected:
-  /**
-   * A function which stores the results of this tally into the created
-   * auxvariables. This implements the copy transfer between the tally mesh and the MOOSE mesh.
-   * @param[in] var_numbers variables which the tally will store results in
-   * @param[in] local_score index into the tally's local array of scores which represents the
-   * current score being stored
-   * @param[in] tally_vals the tally values to store
-   * @param[in] norm_by_src_rate whether or not tally_vals should be normalized by the source rate
-   * @return the sum of the tally over all bins.
-   */
-  virtual Real storeResultsInner(const std::vector<unsigned int> & var_numbers,
-                                 unsigned int local_score,
-                                 const std::vector<OMCTensor> & tally_vals,
-                                 bool norm_by_src_rate = true) override;
   /**
    * Check the setup of the mesh template and translations. Because a simple copy transfer
    * is used to write a mesh tally onto the [Mesh], we require that the
@@ -102,9 +83,6 @@ protected:
   /// The index of the mesh added by this tally.
   unsigned int _mesh_index;
 
-  /// OpenMC mesh filter for this unstructured mesh tally.
-  openmc::MeshFilter * _mesh_filter;
-
   /// OpenMC unstructured mesh instance for use with mesh tallies
   openmc::UnstructuredMesh * _mesh_template;
 
@@ -120,4 +98,16 @@ protected:
   std::unique_ptr<libMesh::ReplicatedMesh> _libmesh_mesh_copy;
   /// A mapping between the OpenMC bins (active block restricted elements) and all elements.
   std::vector<unsigned int> _bin_to_element_mapping;
+
+  /// OpenMC mesh index of the mesh added by this tally.
+  unsigned int openmcMeshIndex() const override { return _mesh_index; }
+
+  /// Number of bins in the mesh.
+  unsigned int nBins() const override { return _mesh_filter->n_bins(); }
+
+  /// Volume in cm^3 of the mesh bin.
+  Real binVolume(unsigned int bin) const override;
+
+  /// Map a mesh bin onto the element of the [Mesh] which stores its value.
+  unsigned int binToElemId(unsigned int bin) const override;
 };
