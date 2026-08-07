@@ -28,7 +28,6 @@ MeshTallyBase::validParams()
   params.addClassDescription(
       "Base class for mesh tallies, which score on an OpenMC mesh and write the results "
       "back into the elements of the problem mesh.");
-  params.registerBase("MeshTallyBase");
   return params;
 }
 
