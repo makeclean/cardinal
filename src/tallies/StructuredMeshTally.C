@@ -37,7 +37,7 @@ StructuredMeshTally::validParams()
                              "(non-uniform) OpenMC mesh.");
 
   params.addRangeCheckedParam<unsigned int>(
-      "dimensions", "dimensions >= 1 && dimensions <= 3",
+      "dimensions", "dimensions => 1 & dimensions <= 3",
       "Number of spatial dimensions of the structured mesh (1, 2, or 3).");
 
   params.addRequiredParam<std::vector<Real>>("lower_left",
