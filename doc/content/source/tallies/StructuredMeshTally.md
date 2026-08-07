@@ -8,16 +8,16 @@ random ray solver.
 ## Description
 
 The `StructuredMeshTally` class wraps an OpenMC tally with a **structured** (regular or
-rectilinear) mesh spatial filter. Unlike the [MeshTally](MeshTally.md), which tallies on an
-unstructured mesh that must match the `[Mesh]`, a `StructuredMeshTally` generates both the
-OpenMC structured mesh *and* a matching native libMesh mesh "on the fly" from text parameters.
-This makes the tally fully independent of the `[Mesh]` block - no one-to-one copy requirement.
+rectilinear) mesh spatial filter. Like the [MeshTally](MeshTally.md), the OpenMC structured
+mesh is generated "on the fly" from text parameters, and the tally results are written into
+monomial (constant) MOOSE auxiliary variables on the `[Mesh]` block. The `[Mesh]` block must
+therefore describe the same grid (same bounds, cell counts, and x-fastest element ordering).
+Because the OpenMC mesh is generated from text parameters, it need not be provided as a file.
 
 The structured mesh is described by per-axis node coordinates. Both the OpenMC mesh and the
 native libMesh mesh are built from the same coordinates, so the OpenMC tally bins line up
-one-to-one with the elements of the genlib Mesh mesh (in bin ordering, i.e. x-fastest, then y,
-then z, matching `openmc::StructuredMesh::get_bin_from_indices`). The tally results are read
-back and stored into the generated mesh object (see `structuredMesh()`).
+one-to-one with the elements of the `[Mesh]` (in bin ordering, i.e. x-fastest, then y,
+then z, matching `openmc::StructuredMesh::get_bin_from_indices`).
 
 Two mesh types are supported via the `mesh_type` parameter:
 
