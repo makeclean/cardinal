@@ -67,6 +67,23 @@ protected:
    */
   virtual unsigned int binToElemId(unsigned int bin) const = 0;
 
+  /**
+   * A function which stores the results of this tally into the created
+   * auxvariables. This implements the volumetric copy transfer between the OpenMC
+   * mesh bins and the elements of the [Mesh], using the binVolume() and binToElemId()
+   * mappings implemented by the derived class.
+   * @param[in] var_numbers variables which the tally will store results in
+   * @param[in] local_score index into the tally's local array of scores which represents the
+   * current score being stored
+   * @param[in] tally_vals the tally values to store
+   * @param[in] norm_by_src_rate whether or not tally_vals should be normalized by the source rate
+   * @return the sum of the tally over all bins.
+   */
+  virtual Real storeResultsInner(const std::vector<unsigned int> & var_numbers,
+                                 unsigned int local_score,
+                                 const std::vector<OMCTensor> & tally_vals,
+                                 bool norm_by_src_rate = true) override;
+
   /// The OpenMC mesh filter for this mesh tally.
   openmc::MeshFilter * _mesh_filter = nullptr;
 };
