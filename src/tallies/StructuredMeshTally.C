@@ -36,8 +36,9 @@ StructuredMeshTally::validParams()
                              "Whether to use a regular (uniform) or rectilinear "
                              "(non-uniform) OpenMC mesh.");
 
-  params.addRangeParam<unsigned int>(
-      "dimensions", 1, 3, "Number of spatial dimensions of the structured mesh (1, 2, or 3).");
+  params.addRangeCheckedParam<unsigned int>(
+      "dimensions", "dimensions >= 1 && dimensions <= 3",
+      "Number of spatial dimensions of the structured mesh (1, 2, or 3).");
 
   params.addRequiredParam<std::vector<Real>>("lower_left",
                                              "Lower-left corner coordinates of the mesh.");
