@@ -51,6 +51,20 @@ MeshTally::MeshTally(const InputParameters & parameters)
     _instance(getParam<unsigned int>("instance")),
     _use_dof_map(_is_adaptive || isParamValid("block"))
 {
+   // The random ray solver requires tracklength estimators, which are not supported for
+  // mesh tallies because the regions are OpenMC mesh cells rather than flat source regions.
+  if (_openmc_problem.runRandomRay())
+    mooseError("Mesh tallies are not supported when using the random ray solver!");
+
+  // Mesh tallies don't support tracklength estimators.
+  if (isParamValid("estimator"))
+  {
+    if (_estimator == openmc::TallyEstimator::TRACKLENGTH)
+      paramError("estimator",
+                 "Tracklength estimators are currently incompatible with mesh tallies!");
+  }
+
+
   // Error check the mesh template.
   if (_openmc_problem.getMooseMesh().getMesh().allow_renumbering() &&
       !_openmc_problem.getMooseMesh().getMesh().is_replicated())

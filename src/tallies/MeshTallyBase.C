@@ -33,23 +33,10 @@ MeshTallyBase::validParams()
 
 MeshTallyBase::MeshTallyBase(const InputParameters & parameters) : TallyBase(parameters)
 {
-  // The random ray solver requires tracklength estimators, which are not supported for
-  // mesh tallies because the regions are OpenMC mesh cells rather than flat source regions.
-  if (_openmc_problem.runRandomRay())
-    mooseError("Mesh tallies are not supported when using the random ray solver!");
-
   const bool nu_scatter =
       std::find(_tally_score.begin(), _tally_score.end(), "nu-scatter") != _tally_score.end();
 
-  // Mesh tallies don't support tracklength estimators.
-  if (isParamValid("estimator"))
-  {
-    if (_estimator == openmc::TallyEstimator::TRACKLENGTH)
-      paramError("estimator",
-                 "Tracklength estimators are currently incompatible with mesh tallies!");
-  }
-  else
-    _estimator = nu_scatter ? openmc::TallyEstimator::ANALOG : openmc::TallyEstimator::COLLISION;
+  _estimator = nu_scatter ? openmc::TallyEstimator::ANALOG : openmc::TallyEstimator::COLLISION;
 }
 
 void
