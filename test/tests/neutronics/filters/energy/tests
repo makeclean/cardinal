@@ -89,4 +89,31 @@
     requirement = "The system shall error if negative energy boundaries are provided."
     capabilities = 'openmc'
   []
+  [energy_mesh_array]
+    type = CSVDiff
+    input = mesh_energy_array.i
+    csvdiff = mesh_energy_array_out.csv
+    requirement = "The system shall be capable of writing a MeshTally with an EnergyFilter "
+                  "into a MOOSE array auxvariable (with one component per energy bin) in "
+                  "addition to the scalar per-bin auxvariables. The gold file must be "
+                  "regenerated after the first successful build."
+    capabilities = 'openmc'
+  []
+  [energy_array_no_filter]
+    type = RunException
+    input = cell.i
+    cli_args = 'Problem/Tallies/Heating/add_energy_array=true'
+    expect_err = "array auxvariable is only supported when the tally has a single energy filter"
+    requirement = "The system shall error if 'add_energy_array' is set on a tally without a "
+                  "single energy filter."
+    capabilities = 'openmc'
+  []
+  [energy_array_multifilter]
+    type = RunException
+    input = energy_array_multifilter.i
+    expect_err = "array auxvariable is only supported when the tally has a single energy filter"
+    requirement = "The system shall error if 'add_energy_array' is set on a tally with more "
+                  "than one external filter."
+    capabilities = 'openmc'
+  []
 []
