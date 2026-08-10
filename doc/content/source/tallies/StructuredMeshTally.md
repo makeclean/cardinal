@@ -33,15 +33,16 @@ OpenMC's length scale (centimeters); see [OpenMCCellAverageProblem.md#scaling].
 ### Writing results into an array auxvariable
 
 When the tally uses a single energy filter (and no other external filters), setting the
-`add_energy_array` parameter to `true` (default `false`) additionally writes each score into a
-MOOSE **array auxvariable** named after the score, with one component per energy bin. This is
-in addition to the usual scalar auxvariables (one per `(score, energy-bin)`), which are always
-created. The array components are labeled with the energy bin names (e.g. `g1`, `g2`, ...).
+`add_energy_array` parameter to `true` (default `false`) writes each score into a MOOSE
+**array auxvariable** named after the score, with one component per energy bin. This
+replaces the usual scalar auxvariables (one per `(score, energy-bin)`), which are not
+created when this parameter is enabled. The array components are labeled with the energy
+bin names (e.g. `g1`, `g2`, ...).
 
-For example, a `flux` score with a 2-group `EnergyFilter` produces the scalar auxvariables
-`flux_g1` and `flux_g2`, plus a `flux` array auxvariable with two components. Components of the
-array auxvariable can be integrated with `ElementIntegralArrayVariablePostprocessor`, or output
-and inspected in Exodus.
+For example, a `flux` score with a 2-group `EnergyFilter` produces a `flux` array auxvariable
+with two components (named `flux_g1` and `flux_g2`). Components of the array auxvariable can
+be integrated with `ElementIntegralArrayVariablePostprocessor`, or output and inspected in
+Exodus.
 
 ## Example Input File Syntax
 

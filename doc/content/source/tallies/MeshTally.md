@@ -42,10 +42,11 @@ throwing an error.
 ### Writing results into an array auxvariable
 
 When the tally uses a single energy filter (and no other external filters), setting the
-`add_energy_array` parameter to `true` (default `false`) additionally writes each score into a
-MOOSE **array auxvariable** named after the score, with one component per energy bin. This is
-in addition to the usual scalar auxvariables (one per `(score, energy-bin)`), which are always
-created. The array components are labeled with the energy bin names (e.g. `g1`, `g2`, ...).
+`add_energy_array` parameter to `true` (default `false`) writes each score into a MOOSE
+**array auxvariable** named after the score, with one component per energy bin. This
+replaces the usual scalar auxvariables (one per `(score, energy-bin)`), which are not
+created when this parameter is enabled. The array components are labeled with the energy
+bin names (e.g. `g1`, `g2`, ...).
 
 ## Example Input File Syntax
 

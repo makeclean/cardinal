@@ -47,8 +47,8 @@
                            0 0 8'
       filters = 'Energy'
 
-      # Additionally write the multi-group flux into a 'flux' array auxvariable with one
-      # component per energy bin (in addition to the usual flux_g1/flux_g2 scalars).
+      # Write the multi-group flux into a 'flux' array auxvariable with one component per
+      # energy bin (instead of the usual flux_g1/flux_g2 scalars).
       add_energy_array = true
 
       # Disable global normalization since we have a loosely fitting mesh tally.

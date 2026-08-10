@@ -2263,9 +2263,9 @@ OpenMCCellAverageProblem::addExternalVariables()
     bool is_instanced = _local_tallies[i]->getAuxVarNames().size() == 0;
     previous_valid_name_index = !is_instanced ? i : previous_valid_name_index;
 
-    // When 'add_energy_array' is enabled, each score is additionally stored in an array
-    // auxvariable (named after the score) with one component per energy bin, alongside the
-    // usual scalar auxvariables (one per (score, energy-bin)).
+    // When 'add_energy_array' is enabled, each score is stored in a single array auxvariable
+    // (named after the score) with one component per energy bin, instead of the usual scalar
+    // auxvariables (one per (score, energy-bin)).
     const auto & names_tally = _local_tallies[previous_valid_name_index];
     const bool use_array = names_tally->useEnergyArray();
     const auto & names =
@@ -2289,14 +2289,9 @@ OpenMCCellAverageProblem::addExternalVariables()
       for (unsigned int j = 0; j < names.size(); ++j)
       {
         if (use_array)
-        {
-          // Add the array auxvariable for the score, then one scalar auxvariable per energy bin.
+          // Add a single array auxvariable for the score, with one component per energy bin.
           _tally_var_ids[i].push_back(
               addExternalArrayVariable(names[j], "Tally", energy_bin_names, &block_name_vec));
-          for (unsigned int b = 0; b < energy_bin_names.size(); ++b)
-            _tally_var_ids[i].push_back(
-                addExternalVariable(names[j] + "_" + energy_bin_names[b], "Tally", &block_name_vec));
-        }
         else
           _tally_var_ids[i].push_back(addExternalVariable(names[j], "Tally", &block_name_vec));
 
@@ -2307,13 +2302,8 @@ OpenMCCellAverageProblem::addExternalVariables()
           {
             std::string n = names[j] + "_" + outs[k];
             if (use_array)
-            {
               _tally_ext_var_ids[i][k].push_back(
                   addExternalArrayVariable(n, "Tally", energy_bin_names, &block_name_vec));
-              for (unsigned int b = 0; b < energy_bin_names.size(); ++b)
-                _tally_ext_var_ids[i][k].push_back(addExternalVariable(
-                    n + "_" + energy_bin_names[b], "Tally", &block_name_vec));
-            }
             else
               _tally_ext_var_ids[i][k].push_back(
                   addExternalVariable(n, "Tally", &block_name_vec));
