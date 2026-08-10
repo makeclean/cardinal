@@ -28,6 +28,14 @@ Namely, filters are limited to [EnergyFilters](EnergyFilter.md) and scores are l
 In addition to restrictions on filters and scores, the only `estimator` that can be used with [!ac](TRRM) is
 the `tracklength` estimator.
 
+### Writing results into an array auxvariable
+
+When the tally uses a single energy filter (and no other external filters), setting the
+`add_energy_array` parameter to `true` (default `false`) additionally writes each score into a
+MOOSE **array auxvariable** named after the score, with one component per energy bin. This is
+in addition to the usual scalar auxvariables (one per `(score, energy-bin)`), which are always
+created. The array components are labeled with the energy bin names (e.g. `g1`, `g2`, ...).
+
 ## Example Input File Syntax
 
 As an example, this `CellTally` scores `kappa_fission` (the default tally score) on block `0` and stores

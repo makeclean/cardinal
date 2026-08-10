@@ -943,6 +943,26 @@ OpenMCProblemBase::addExternalVariable(const std::string & name,
   return _aux->getFieldVariable<Real>(0, name).number();
 }
 
+unsigned int
+OpenMCProblemBase::addExternalArrayVariable(const std::string & name,
+                                            const std::string & system,
+                                            const std::vector<std::string> & component_names,
+                                            const std::vector<SubdomainName> * block)
+{
+  auto var_params = _factory.getValidParams("ArrayMooseVariable");
+  var_params.set<MooseEnum>("family") = "MONOMIAL";
+  var_params.set<MooseEnum>("order") = "CONSTANT";
+  var_params.set<unsigned int>("components") = component_names.size();
+  var_params.set<std::vector<std::string>>("array_var_component_names") = component_names;
+
+  if (block)
+    var_params.set<std::vector<SubdomainName>>("block") = *block;
+
+  checkDuplicateVariableName(name, system);
+  addAuxVariable("ArrayMooseVariable", name, var_params);
+  return _aux->getVariable(0, name).number();
+}
+
 std::string
 OpenMCProblemBase::subdomainName(const SubdomainID & id) const
 {

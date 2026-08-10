@@ -107,6 +107,19 @@ public:
                                    const std::vector<SubdomainName> * block = nullptr);
 
   /**
+   * Add a constant monomial array auxiliary variable
+   * @param[in] name name of the variable
+   * @param[in] system an optional string for the system adding a variable (to improve debugging)
+   * @param[in] component_names names for each array component
+   * @param[in] block optional subdomain names on which to restrict the variable
+   * @return numeric index for the variable in the auxiliary system
+   */
+  unsigned int addExternalArrayVariable(const std::string & name,
+                                        const std::string & system,
+                                        const std::vector<std::string> & component_names,
+                                        const std::vector<SubdomainName> * block = nullptr);
+
+  /**
    * Get the scaling value applied to the [Mesh] to convert to OpenMC's centimeters units
    * @return scaling value
    */
