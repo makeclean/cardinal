@@ -19,6 +19,22 @@
   allow_renumbering = false
 []
 
+[AuxVariables]
+  [total_flux]
+    family = MONOMIAL
+    order = CONSTANT
+  []
+[]
+
+[AuxKernels]
+  [sum_aux]
+    type = ArrayVarReductionAux
+    variable = total_flux
+    array_variable = flux
+    value_type = sum
+  []
+[]
+  
 [Problem]
   type = OpenMCCellAverageProblem
   verbose = true
