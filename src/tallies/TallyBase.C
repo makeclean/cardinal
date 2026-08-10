@@ -805,7 +805,7 @@ TallyBase::fillElementalArrayAuxVariable(const unsigned int & var_num,
   std::vector<dof_id_type> dof_indices;
   for (const auto & e : elem_ids)
   {
-    auto elem_ptr = _openmc_problem.getMooseMesh().queryElemPtr(e);
+    const Elem * const elem_ptr = _openmc_problem.getMooseMesh().queryElemPtr(e);
 
     if (!_openmc_problem.isLocalElem(elem_ptr))
       continue;
