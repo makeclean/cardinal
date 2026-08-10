@@ -2263,32 +2263,61 @@ OpenMCCellAverageProblem::addExternalVariables()
     bool is_instanced = _local_tallies[i]->getAuxVarNames().size() == 0;
     previous_valid_name_index = !is_instanced ? i : previous_valid_name_index;
 
-    const auto & names = _local_tallies[previous_valid_name_index]->getAuxVarNames();
+    // When 'add_energy_array' is enabled, each score is additionally stored in an array
+    // auxvariable (named after the score) with one component per energy bin, alongside the
+    // usual scalar auxvariables (one per (score, energy-bin)).
+    const auto & names_tally = _local_tallies[previous_valid_name_index];
+    const bool use_array = names_tally->useEnergyArray();
+    const auto & names =
+        use_array ? names_tally->getArrayAuxVarNames() : names_tally->getAuxVarNames();
+    const auto & energy_bin_names = names_tally->getEnergyBinNames();
 
     _tally_ext_var_ids.emplace_back();
     if (_local_tallies[i]->hasOutputs())
       _tally_ext_var_ids[i].resize(_local_tallies[i]->getOutputs().size());
 
-    for (unsigned int j = 0; j < names.size(); ++j)
+    if (is_instanced)
     {
-      if (is_instanced)
-        _tally_var_ids[i].push_back(
-            _tally_var_ids[previous_valid_name_index][j]); // Use variables from first in sequence.
-      else
-        _tally_var_ids[i].push_back(addExternalVariable(names[j], "Tally", &block_name_vec));
-
-      if (_local_tallies[i]->hasOutputs())
+      // Instances of a translated mesh reuse all of the variables (array and scalar) added
+      // by the first tally in the sequence.
+      _tally_var_ids[i] = _tally_var_ids[previous_valid_name_index];
+      for (std::size_t k = 0; k < _tally_ext_var_ids[i].size(); ++k)
+        _tally_ext_var_ids[i][k] = _tally_ext_var_ids[previous_valid_name_index][k];
+    }
+    else
+    {
+      for (unsigned int j = 0; j < names.size(); ++j)
       {
-        const auto & outs = _local_tallies[i]->getOutputs();
-        for (std::size_t k = 0; k < outs.size(); ++k)
+        if (use_array)
         {
-          std::string n = names[j] + "_" + outs[k];
-          if (is_instanced)
-            _tally_ext_var_ids[i][k].push_back(
-                _tally_ext_var_ids[previous_valid_name_index][k]
-                                  [j]); // Use variables from first in sequence.
-          else
-            _tally_ext_var_ids[i][k].push_back(addExternalVariable(n, "Tally", &block_name_vec));
+          // Add the array auxvariable for the score, then one scalar auxvariable per energy bin.
+          _tally_var_ids[i].push_back(
+              addExternalArrayVariable(names[j], "Tally", energy_bin_names, &block_name_vec));
+          for (unsigned int b = 0; b < energy_bin_names.size(); ++b)
+            _tally_var_ids[i].push_back(
+                addExternalVariable(names[j] + "_" + energy_bin_names[b], "Tally", &block_name_vec));
+        }
+        else
+          _tally_var_ids[i].push_back(addExternalVariable(names[j], "Tally", &block_name_vec));
+
+        if (_local_tallies[i]->hasOutputs())
+        {
+          const auto & outs = _local_tallies[i]->getOutputs();
+          for (std::size_t k = 0; k < outs.size(); ++k)
+          {
+            std::string n = names[j] + "_" + outs[k];
+            if (use_array)
+            {
+              _tally_ext_var_ids[i][k].push_back(
+                  addExternalArrayVariable(n, "Tally", energy_bin_names, &block_name_vec));
+              for (unsigned int b = 0; b < energy_bin_names.size(); ++b)
+                _tally_ext_var_ids[i][k].push_back(addExternalVariable(
+                    n + "_" + energy_bin_names[b], "Tally", &block_name_vec));
+            }
+            else
+              _tally_ext_var_ids[i][k].push_back(
+                  addExternalVariable(n, "Tally", &block_name_vec));
+          }
         }
       }
     }

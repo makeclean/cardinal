@@ -23,6 +23,7 @@
 #include "UserErrorChecking.h"
 #include "AuxiliarySystem.h"
 #include "FilterBase.h"
+#include "EnergyFilter.h"
 
 #include "AngularLegendreFilter.h"
 #include "EnergyOutFilter.h"
@@ -32,6 +33,8 @@
 #include "openmc/geometry.h"
 #include "openmc/settings.h"
 #include "openmc/universe.h"
+
+#include "libmesh/dof_map.h"
 
 InputParameters
 TallyBase::validParams()
@@ -86,6 +89,14 @@ TallyBase::validParams()
       "variables named *_raw (replace * with 'name').");
 
   params.addParam<std::vector<std::string>>("filters", "External filters to add to this tally.");
+
+  params.addParam<bool>(
+      "add_energy_array",
+      false,
+      "Whether to additionally write the tally results into MOOSE array auxiliary variables, "
+      "with one component per energy bin. This is only supported when the tally has a single "
+      "energy filter (and no other external filters). When enabled, one array auxvariable is "
+      "added per score (named after the score), with the components labeled by the energy bins.");
 
   params.addParam<bool>("check_tally_sum",
                         "Whether to check consistency between the local tallies "
@@ -304,6 +315,23 @@ TallyBase::TallyBase(const InputParameters & parameters)
                          " can only be used with delayed_nu_fission and decay_rate scores!");
   }
 
+  // When 'add_energy_array' is set, additionally write the tally results into a MOOSE array
+  // auxvariable, with one component per energy bin. We only support a single energy filter
+  // (with no other external filters) so that each component corresponds unambiguously to an
+  // energy bin.
+  if (getParam<bool>("add_energy_array"))
+  {
+    if (_ext_filters.size() != 1 || !dynamic_cast<EnergyFilter *>(_ext_filters[0].get()))
+      paramError("add_energy_array",
+                 "Writing tally results into an array auxvariable is only supported when the "
+                 "tally has a single energy filter (and no other external filters)!");
+
+    _use_energy_array = true;
+    _energy_filter = dynamic_cast<EnergyFilter *>(_ext_filters[0].get());
+    for (unsigned int j = 0; j < _energy_filter->numBins(); ++j)
+      _energy_bin_names.push_back(_energy_filter->binName(j));
+  }
+
   if (isParamValid("name"))
     _tally_name = getParam<std::vector<std::string>>("name");
   else
@@ -335,6 +363,10 @@ TallyBase::TallyBase(const InputParameters & parameters)
 
   if (_tally_name.size() != _tally_score.size())
     paramError("name", "'name' must be the same length as 'score'!");
+
+  // The array auxvariables are named after the (pre-bin-expansion) score names.
+  if (_use_energy_array)
+    _array_aux_var_names = _tally_name;
 
   // Modify the variable names so they take into account the bins in the external filters.
   auto all_var_names = _tally_name;
@@ -520,6 +552,9 @@ TallyBase::addScore(const std::string & score)
 
   std::vector<std::string> score_names({score});
   std::replace(score_names.back().begin(), score_names.back().end(), '-', '_');
+
+  if (_use_energy_array)
+    _array_aux_var_names.push_back(score_names.back());
 
   // Modify the variable name and add extra names for the external filter bins.
   for (const auto & filter : _ext_filters)
@@ -756,6 +791,51 @@ TallyBase::fillElementalAuxVariable(const unsigned int & var_num,
     auto dof_idx = elem_ptr->dof_number(sys_number, var_num, 0);
     solution.set(dof_idx, value);
   }
+}
+
+void
+TallyBase::fillElementalArrayAuxVariable(const unsigned int & var_num,
+                                         unsigned int ext_bin,
+                                         const std::vector<unsigned int> & elem_ids,
+                                         const Real & value)
+{
+  auto & solution = _aux.solution();
+  auto & dof_map = _aux.dofMap();
+
+  std::vector<dof_id_type> dof_indices;
+  for (const auto & e : elem_ids)
+  {
+    auto elem_ptr = _openmc_problem.getMooseMesh().queryElemPtr(e);
+
+    if (!_openmc_problem.isLocalElem(elem_ptr))
+      continue;
+
+    dof_indices.clear();
+    dof_map.array_dof_indices(elem_ptr, dof_indices, var_num);
+    solution.set(dof_indices[ext_bin], value);
+  }
+}
+
+void
+TallyBase::writeTallyValue(const std::vector<unsigned int> & var_numbers,
+                           unsigned int local_score,
+                           unsigned int ext_bin,
+                           const std::vector<unsigned int> & elem_ids,
+                           const Real & value)
+{
+  if (_use_energy_array)
+  {
+    // In array mode each score creates (num energy bins + 1) variables: the array auxvariable
+    // followed by one scalar auxvariable per energy bin. The value is written to both the
+    // scalar variable for this bin and to the corresponding component of the array auxvariable.
+    const unsigned int stride = _num_ext_filter_bins + 1;
+    fillElementalArrayAuxVariable(var_numbers[local_score * stride], ext_bin, elem_ids, value);
+    fillElementalAuxVariable(var_numbers[local_score * stride + 1 + ext_bin], elem_ids, value);
+  }
+  else
+    fillElementalAuxVariable(var_numbers[local_score * _num_ext_filter_bins + ext_bin],
+                             elem_ids,
+                             value);
 }
 
 void

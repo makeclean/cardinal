@@ -29,6 +29,7 @@ class OpenMCCellAverageProblem;
 class MooseMesh;
 class AuxiliarySystem;
 class FilterBase;
+class EnergyFilter;
 
 typedef openmc::tensor::Tensor<double> OMCTensor;
 
@@ -237,11 +238,33 @@ public:
    */
   bool renamesTallyVars() const { return _renames_tally_vars; }
 
-  /**
-   * Get the total number of external filter bins applied to this tally.
+/**
+   * Gets the total number of external filter bins applied to this tally.
    * @return the total number of external filter bins.
    */
   unsigned int numExtFilterBins() const { return _num_ext_filter_bins; }
+
+  /**
+   * Whether this tally also writes its results into a MOOSE array auxvariable, with one
+   * component per energy bin. Only supported for a tally with a single energy filter
+   * (and no other external filters).
+   * @return whether this tally adds array auxvariables for energy-filtered scores
+   */
+  bool useEnergyArray() const { return _use_energy_array; }
+
+  /**
+   * Names of the array auxvariables (one per score), with each component corresponding to
+   * an energy bin. Only valid when useEnergyArray() is true.
+   * @return vector of base score names (one per score)
+   */
+  const std::vector<std::string> & getArrayAuxVarNames() const { return _array_aux_var_names; }
+
+  /**
+   * Short-form names for each energy bin (e.g. 'g1', 'g2', ...), used to label the
+   * components of the array auxvariables. Only valid when useEnergyArray() is true.
+   * @return vector of energy bin names
+   */
+  const std::vector<std::string> & getEnergyBinNames() const { return _energy_bin_names; }
 
   /**
    * A function to get the blocks associated with this CellTally.
@@ -296,6 +319,35 @@ protected:
                                 const Real & value);
 
   /**
+   * Set a component of an auxiliary array element variable to a specified value
+   * @param[in] var_num variable number
+   * @param[in] ext_bin component index (must be less than the number of components)
+   * @param[in] elem_ids element IDs to set
+   * @param[in] value value to set
+   */
+  void fillElementalArrayAuxVariable(const unsigned int & var_num,
+                                     unsigned int ext_bin,
+                                     const std::vector<unsigned int> & elem_ids,
+                                     const Real & value);
+
+  /**
+   * Write a score value to the auxiliary variable(s) associated with (local_score, ext_bin)
+   * on the given elements. When useEnergyArray() is true the value is written as component
+   * 'ext_bin' of the array auxvariable for the score; otherwise it is written to the scalar
+   * variable corresponding to (score, ext_bin).
+   * @param[in] var_numbers variables which the tally will store results in
+   * @param[in] local_score index into the tally's local array of scores
+   * @param[in] ext_bin index into the external (non-spatial) filter bins
+   * @param[in] elem_ids element IDs to set
+   * @param[in] value value to set
+   */
+  void writeTallyValue(const std::vector<unsigned int> & var_numbers,
+                       unsigned int local_score,
+                       unsigned int ext_bin,
+                       const std::vector<unsigned int> & elem_ids,
+                       const Real & value);
+
+  /**
    * Applies triggers to a tally. This is often the local tally wrapped by this object.
    * @param[in] tally the tally to apply triggers to
    */
@@ -333,6 +385,18 @@ protected:
 
   /// The external filters added in the [Problem/Filters] block.
   std::vector<std::shared_ptr<FilterBase>> _ext_filters;
+
+  /// Whether this tally writes results into a MOOSE array auxvariable (one component per energy bin).
+  bool _use_energy_array = false;
+
+  /// The energy filter for the array auxvariable output, when _use_energy_array is true.
+  EnergyFilter * _energy_filter = nullptr;
+
+  /// Base score names of the array auxvariables, when _use_energy_array is true.
+  std::vector<std::string> _array_aux_var_names;
+
+  /// Short-form energy bin names (array components), when _use_energy_array is true.
+  std::vector<std::string> _energy_bin_names;
 
   /// The OpenMC estimator to use with this tally.
   openmc::TallyEstimator _estimator;

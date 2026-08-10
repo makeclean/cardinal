@@ -39,6 +39,14 @@ At present time, libMesh unstructured mesh tallies only support `collision` and 
 to `tracklength` will result in a warning; the `MeshTally` will then manually reset the estimator to `collision` to prevent OpenMC from
 throwing an error.
 
+### Writing results into an array auxvariable
+
+When the tally uses a single energy filter (and no other external filters), setting the
+`add_energy_array` parameter to `true` (default `false`) additionally writes each score into a
+MOOSE **array auxvariable** named after the score, with one component per energy bin. This is
+in addition to the usual scalar auxvariables (one per `(score, energy-bin)`), which are always
+created. The array components are labeled with the energy bin names (e.g. `g1`, `g2`, ...).
+
 ## Example Input File Syntax
 
 As an example, this `MeshTally` scores `kappa_fission` (the default tally score) on the unstructured mesh

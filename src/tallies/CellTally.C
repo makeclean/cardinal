@@ -114,8 +114,7 @@ CellTally::storeResultsInner(const std::vector<unsigned int> & var_numbers,
                               : 1.0;
       total += _ext_bins_to_skip[ext_bin] ? 0.0 : unnormalized_tally;
 
-      auto var = var_numbers[_num_ext_filter_bins * local_score + ext_bin];
-      fillElementalAuxVariable(var, c.second, volumetric_tally);
+      writeTallyValue(var_numbers, local_score, ext_bin, c.second, volumetric_tally);
     }
   }
 

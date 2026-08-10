@@ -82,8 +82,7 @@ MeshTallyBase::storeResultsInner(const std::vector<unsigned int> & var_numbers,
                               : 1.0;
       total += _ext_bins_to_skip[ext_bin] ? 0.0 : unnormalized_tally;
 
-      auto var = var_numbers[local_score * _num_ext_filter_bins + ext_bin];
-      fillElementalAuxVariable(var, {binToElemId(e)}, volumetric_tally);
+      writeTallyValue(var_numbers, local_score, ext_bin, {binToElemId(e)}, volumetric_tally);
     }
   }
 
