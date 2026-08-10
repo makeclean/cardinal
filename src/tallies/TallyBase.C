@@ -93,10 +93,11 @@ TallyBase::validParams()
   params.addParam<bool>(
       "add_energy_array",
       false,
-      "Whether to additionally write the tally results into MOOSE array auxiliary variables, "
-      "with one component per energy bin. This is only supported when the tally has a single "
-      "energy filter (and no other external filters). When enabled, one array auxvariable is "
-      "added per score (named after the score), with the components labeled by the energy bins.");
+      "Whether to write each score into a MOOSE array auxiliary variable, with one component "
+      "per energy bin, instead of the usual per-bin scalar auxvariables. This is only supported "
+      "when the tally has a single energy filter (and no other external filters). When enabled, "
+      "one array auxvariable is added per score (named after the score), with the components "
+      "labeled by the energy bin names (g1, g2, ...).");
 
   params.addParam<bool>("check_tally_sum",
                         "Whether to check consistency between the local tallies "
@@ -315,10 +316,10 @@ TallyBase::TallyBase(const InputParameters & parameters)
                          " can only be used with delayed_nu_fission and decay_rate scores!");
   }
 
-  // When 'add_energy_array' is set, additionally write the tally results into a MOOSE array
-  // auxvariable, with one component per energy bin. We only support a single energy filter
-  // (with no other external filters) so that each component corresponds unambiguously to an
-  // energy bin.
+  // When 'add_energy_array' is set, write the tally results into a MOOSE array auxvariable,
+  // with one component per energy bin, instead of the usual scalar auxvariables. We only support
+  // a single energy filter (with no other external filters) so that each component corresponds
+  // unambiguously to an energy bin.
   if (getParam<bool>("add_energy_array"))
   {
     if (_ext_filters.size() != 1 || !dynamic_cast<EnergyFilter *>(_ext_filters[0].get()))
@@ -824,14 +825,9 @@ TallyBase::writeTallyValue(const std::vector<unsigned int> & var_numbers,
                            const Real & value)
 {
   if (_use_energy_array)
-  {
-    // In array mode each score creates (num energy bins + 1) variables: the array auxvariable
-    // followed by one scalar auxvariable per energy bin. The value is written to both the
-    // scalar variable for this bin and to the corresponding component of the array auxvariable.
-    const unsigned int stride = _num_ext_filter_bins + 1;
-    fillElementalArrayAuxVariable(var_numbers[local_score * stride], ext_bin, elem_ids, value);
-    fillElementalAuxVariable(var_numbers[local_score * stride + 1 + ext_bin], elem_ids, value);
-  }
+    // In array mode each score corresponds to a single array auxvariable, with one component
+    // per energy bin; write the value directly to the component for this bin.
+    fillElementalArrayAuxVariable(var_numbers[local_score], ext_bin, elem_ids, value);
   else
     fillElementalAuxVariable(var_numbers[local_score * _num_ext_filter_bins + ext_bin],
                              elem_ids,
