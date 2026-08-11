@@ -29,6 +29,7 @@ geometry = openmc.Geometry(root=dagmc_univ)
 model.geometry = geometry
 
 settings = openmc.Settings()
+
 settings.energy_mode = "multi-group"
 settings.random_ray['source_shape'] = 'linear'
 settings.random_ray['distance_inactive'] = 40.0
@@ -44,6 +45,24 @@ upper_right = dagmc_univ.bounding_box.upper_right
 uniform_dist = openmc.stats.Box(lower_left, upper_right)
 settings.random_ray['ray_source'] = openmc.IndependentSource(space=uniform_dist)
 
+energy_points = [1.0e-2, 1.0e1]
+strengths = [0.0, 0.75]
+energy_distribution = openmc.stats.Discrete(x=energy_points, p=strengths)
+neutron_source = openmc.IndependentSource(
+    energy=energy_distribution,
+    space=uniform_dist
+)
+
+settings.source = neutron_source
+
 model.settings = settings
+
+# Create voxel plot
+plot = openmc.VoxelPlot()
+plot.origin = [0, 0, 0]
+plot.width = [50, 50, 1]
+plot.pixels = [1000, 1000, 1]
+
+model.plots = [plot]
 
 model.export_to_xml()
