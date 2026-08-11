@@ -33,10 +33,13 @@ MeshTallyBase::validParams()
 
 MeshTallyBase::MeshTallyBase(const InputParameters & parameters) : TallyBase(parameters)
 {
-  const bool nu_scatter =
+  if (!isParamValid("estimator"))
+  {
+    const bool nu_scatter =
       std::find(_tally_score.begin(), _tally_score.end(), "nu-scatter") != _tally_score.end();
 
-  _estimator = nu_scatter ? openmc::TallyEstimator::ANALOG : openmc::TallyEstimator::COLLISION;
+    _estimator = nu_scatter ? openmc::TallyEstimator::ANALOG : openmc::TallyEstimator::COLLISION;
+  }
 }
 
 void
